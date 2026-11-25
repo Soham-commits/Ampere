@@ -1,4 +1,4 @@
-import { ArrowDownRight, Fuel, Zap } from 'lucide-react'
+import { ArrowDownRight, ChevronDown, Fuel, Zap } from 'lucide-react'
 import { SavingsLog } from './SavingsLog'
 import { useSession } from '../../app/hooks'
 import { Page, PageHeader } from '../../components/Shell'
@@ -26,22 +26,19 @@ export default function Savings() {
   const result = calculateSavings(inputs)
   return (
     <>
-      <PageHeader back title="Fuel savings" subtitle="Explore your driving costs." />
+      <PageHeader back title="Fuel savings" />
       <Page className="mx-auto max-w-2xl">
-        <p className="mb-5 text-xs text-muted">
-          Illustrative calculator · prices and distance below are editable assumptions, not current market rates or recorded trips.
-        </p>
-        <Card className="border border-line !rounded-[2rem] !p-6">
+        <Card className="border border-line !rounded-[2rem] !p-5">
           <span className="inline-flex items-center gap-2 text-sm text-volt">
             <ArrowDownRight className="size-5" />
             {result && result.saved < 0 ? 'Additional EV energy cost' : 'Estimated energy savings'}
           </span>
           <h2 className="mt-4 break-words text-5xl font-medium tracking-tight text-volt">{result ? money(Math.abs(result.saved)) : '—'}</h2>
           <p className="mt-3 text-sm text-ink-2">
-            Across {Number.isFinite(inputs.km) ? inputs.km.toLocaleString('en-IN') : '—'} km in your scenario.
+            {Number.isFinite(inputs.km) ? inputs.km.toLocaleString('en-IN') : '—'} km · energy costs only
           </p>
           {result ? (
-            <div className="mt-7 space-y-5">
+            <div className="mt-5 space-y-3">
               {[
                 { label: 'Petrol', value: result.petrol, icon: Fuel, color: 'bg-ink/15' },
                 { label: 'Electric', value: result.electricity, icon: Zap, color: 'bg-volt' },
@@ -71,9 +68,24 @@ export default function Savings() {
             </p>
           )}
         </Card>
-        <h2 className="mb-3 mt-7 text-xl font-semibold">Make it your own</h2>
-        <Card className="space-y-4 border border-line !p-5">
-          {fields.map(({ key, label, unit, min }) => (
+        <div className="mt-3 rounded-2xl border border-line p-4">
+          <label className="flex items-center justify-between gap-3 text-sm font-semibold">
+            Distance driven
+            <span className="flex items-center gap-2 text-xs text-muted">
+              <input type="number" min={0} max={1000000} step="any" aria-label="Distance driven"
+                value={!Number.isFinite(inputs.km) ? '' : inputs.km}
+                onChange={(e) => setInputs({ ...inputs, km: e.target.valueAsNumber })}
+                className="h-10 w-24 rounded-xl border border-line bg-surface-2 px-3 text-sm text-ink" />
+              km
+            </span>
+          </label>
+        </div>
+        <details className="group mt-3 rounded-2xl border border-line px-4">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-semibold [&::-webkit-details-marker]:hidden">
+            Prices and efficiency <ChevronDown className="size-4 text-muted group-open:rotate-180" aria-hidden="true" />
+          </summary>
+          <div className="grid grid-cols-2 gap-3 pb-4">
+          {fields.filter(({ key }) => key !== 'km').map(({ key, label, unit, min }) => (
             <label key={key} className="block">
               <span className="flex justify-between gap-2 text-sm">
                 <span>{label}</span>
@@ -82,21 +94,18 @@ export default function Savings() {
               <input
                 type="number"
                 min={min}
-                max={key === 'km' ? 1000000 : 10000}
+                max={10000}
                 step="any"
-                value={Number.isNaN(inputs[key]) ? '' : inputs[key]}
-                onChange={(e) => setInputs({ ...inputs, [key]: Number(e.target.value) })}
+                value={!Number.isFinite(inputs[key]) ? '' : inputs[key]}
+                onChange={(e) => setInputs({ ...inputs, [key]: e.target.valueAsNumber })}
                 className="mt-2 h-12 w-full rounded-2xl border border-line bg-surface-2 px-4"
               />
             </label>
           ))}
-        </Card>
+          </div>
+          <p className="pb-3 text-xs text-muted">Editable estimates. Fees and ownership costs are excluded.</p>
+        </details>
         <SavingsLog userId={user.id} inputs={inputs} />
-        <p className="mt-4 text-xs leading-relaxed text-muted">
-          Petrol cost = distance ÷ mileage × price/litre. EV cost = distance × consumption ÷ 100 × price/kWh. Excludes charging losses,
-          platform fees, maintenance, insurance and purchase price. Inputs are saved in this browser; no bank or odometer connection is
-          used.
-        </p>
       </Page>
     </>
   )

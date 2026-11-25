@@ -16,12 +16,16 @@ export class DomainInputError extends Error {
   }
 }
 
+export function energyAboveReserve(capacityKwh: number, socPct: number, reservePct: number): number {
+  return (capacityKwh * (socPct - reservePct)) / 100
+}
+
 export function rangeBudget(model: VehicleModel, socPct: number, policy: Policy): RangeBudget {
   if (!Number.isFinite(socPct) || socPct < 0 || socPct > 100) throw new DomainInputError('INVALID_SOC', 'Battery must be between 0 and 100%.')
   const c = model.consumption_kwh_per_km
   if (!(c > 0)) throw new DomainInputError('INVALID_VEHICLE', 'Vehicle consumption must be positive.')
   const capKwh = model.usable_battery_wh / 1000
-  const energy = (capKwh * Math.max(socPct - policy.reserve_pct, 0)) / 100
+  const energy = Math.max(0, energyAboveReserve(capKwh, socPct, policy.reserve_pct))
   const rangeKm = energy / (c * policy.uncertainty)
   return {
     energy_budget_kwh: round(energy, 4),

@@ -3,7 +3,7 @@ import type { EventPayloads } from '../domain/booking'
 import { RecentAlertCard } from '../components/RecentAlertCard'
 import { bookingSiteName } from '../lib/bookingSiteName'
 import { ArrowRight, BatteryCharging, Bell, Gauge, CreditCard, CircleCheck, Clock3, Target, LocateFixed } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useVehicleSlider } from '../app/useVehicleSlider'
 import { Link, useNavigate } from 'react-router-dom'
 import { useNotifications } from '../app/notifications'
 import { useNow, useQuery, useSession } from '../app/hooks'
@@ -12,14 +12,14 @@ import { siteIcon } from '../components/booking'
 import { Avatar, Page, PageHeader } from '../components/Shell'
 import { Button, Card, EmptyState, Range, SectionTitle } from '../components/ui'
 import { rangeBudget } from '../domain/calc'
-import { CONNECTOR_LABEL, modelById } from '../domain/catalogue'
+import { CONNECTOR_LABEL } from '../domain/catalogue'
 import { POLICY } from '../domain/policy'
 import { istDayLabel, istTime, km, relativeAge, rupees } from '../lib/format'
 import { MIT_WPU_ORIGIN } from '../domain/mockLocation'
 import { useMyVehicle } from '../app/useMyVehicle'
 import { useBookableChargers } from '../features/discovery/useBookableChargers'
 import { api } from '../server/api'
-import { readDb } from '../server/db'
+import { modelById, readDb } from '../server/db'
 
 
 export default function DriverHome() {
@@ -30,21 +30,11 @@ export default function DriverHome() {
   const now = useNow(1000)
   const bookings = useQuery(() => api.listBookings('driver'))
   const { items } = useNotifications(user)
-  const [soc, setSoc] = useState<number | null>(null)
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
-
-  useEffect(() => {
-    if (vehicle) setSoc(vehicle.soc)
-  }, [vehicle?.soc]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const commitSoc = (v: number) => {
-    setSoc(v)
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => vehicle && api.updateVehicle(vehicle.id, { soc: v }), 350)
-  }
+  const battery = useVehicleSlider(vehicle, 'soc')
+  const soc = battery.value ?? null
 
   const origin = MIT_WPU_ORIGIN
-  const search = useBookableChargers({ modelId: vehicle?.model_id, soc })
+  const search = useBookableChargers({ modelId: vehicle?.model_id, soc: vehicle?.soc })
   const mapSites = [...new Map((search.data?.results ?? []).map((r) => [r.site.id, {
     site: r.site, reservable: r.reservable, label: r.site.name,
   }])).values()]
@@ -112,7 +102,7 @@ export default function DriverHome() {
               <div className="min-w-0 min-h-[150px] rounded-[2rem] bg-volt-soft p-4 sm:p-5">
                 <div className="flex items-baseline gap-1"><span className="text-[clamp(1.75rem,8.5vw,2.25rem)] font-semibold tracking-tight">{soc}</span><span className="text-lg">%</span></div>
                 <div className="mt-1 flex items-center gap-1.5 text-xs text-ink-2"><BatteryCharging className="size-3.5" /> Battery level</div>
-                <Range className="mt-3" label="Battery level" value={soc} min={0} max={100} onChange={commitSoc} />
+                <Range className="mt-3" label="Battery level" value={soc} min={0} max={100} onChange={battery.onChange} onCommit={battery.onCommit} />
               </div>
               <div className="min-w-0 min-h-[150px] rounded-[2rem] bg-ink p-4 sm:p-5 text-white">
                 <div className="flex items-baseline gap-1 text-volt"><span className="text-[clamp(1.75rem,8.5vw,2.25rem)] font-semibold tracking-tight">{(budget.range_budget_m / 1000).toFixed(1)}</span><span className="text-lg">km</span></div>

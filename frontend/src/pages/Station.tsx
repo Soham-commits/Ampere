@@ -11,7 +11,7 @@ import { DurationDial } from '../components/DurationDial'
 import { slotProblem } from '../server/availability'
 import { Page, PageHeader } from '../components/Shell'
 import { Button, Card, Chip, EmptyState, Notice, Range, SectionTitle, Segmented, Skeleton, useAction } from '../components/ui'
-import { CONNECTOR_LABEL, modelById } from '../domain/catalogue'
+import { CONNECTOR_LABEL } from '../domain/catalogue'
 import { POLICY } from '../domain/policy'
 import type { ConnectorStandard, Plan } from '../domain/types'
 import { cn } from '../lib/cn'
@@ -21,7 +21,7 @@ import { MIT_WPU_ORIGIN } from '../domain/mockLocation'
 import { useBookableChargers } from '../features/discovery/useBookableChargers'
 import { stationImage } from '../lib/stationImages'
 import { api } from '../server/api'
-import type { Quote } from '../server/db'
+import { modelById, type Quote } from '../server/db'
 import { useMyVehicle } from '../app/useMyVehicle'
 
 export default function Station() {
@@ -51,6 +51,15 @@ export default function Station() {
   const [mode, setMode] = useState<'GRID' | 'TARGET'>('GRID')
   const [gridKwh, setGridKwh] = useState(8)
   const [target, setTarget] = useState<number>(vehicle?.target_soc ?? 80)
+  const [durationDraft, setDurationDraft] = useState<number | null>(null)
+  const [energyDraft, setEnergyDraft] = useState<number | null>(null)
+  const [targetDraft, setTargetDraft] = useState<number | null>(null)
+  const editing = durationDraft !== null || energyDraft !== null || targetDraft !== null
+  function commitInput(current: number, update: (value: number) => void, clear: (value: null) => void, value: number) {
+    if (value !== current) setQuoting(true)
+    update(value)
+    clear(null)
+  }
   const [plan, setPlan] = useState<Plan>('STANDARD')
   const [accepted, setAccepted] = useState(false)
   const [equipmentOpen, setEquipmentOpen] = useState(false)
@@ -73,9 +82,11 @@ export default function Station() {
   useEffect(() => {
     if (!conn || !start || !model || soc === undefined) {
       setQuote(null)
+      setQuoting(false)
       return
     }
     setQuoting(true)
+    let canceled = false
     const t = setTimeout(async () => {
       const r = await api.createQuote({
         connector_id: conn.id,
@@ -87,6 +98,7 @@ export default function Station() {
         plan,
         energy: mode === 'GRID' ? { kind: 'GRID', grid_wh: Math.round(gridKwh * 1000) } : { kind: 'TARGET', target_soc: target },
       })
+      if (canceled) return
       setQuoting(false)
       idemKey.current = uuid()
       if (r.ok) {
@@ -97,11 +109,11 @@ export default function Station() {
         setQuoteError(r.error)
       }
     }, 300)
-    return () => clearTimeout(t)
+    return () => { canceled = true; clearTimeout(t) }
   }, [conn?.id, start, duration, plan, mode, gridKwh, target, soc, model?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const request = async (equipment_choice: EquipmentChoice) => {
-    if (!quote) return
+    if (!quote || quoting || editing) return
     const res = await run('book', () => api.createBooking({ quote_id: quote.id, idempotency_key: idemKey.current, policy_acceptance_version: POLICY.version, equipment_choice }), (d) => `Request ${d.booking_ref} sent to the host`)
     if (res) { setEquipmentOpen(false); nav(`/booking/${res.booking_id}`) }
   }
@@ -244,7 +256,7 @@ export default function Station() {
                 <div>
                   <div className="mb-3 flex items-center justify-between"><span className="text-base font-medium">Charging duration</span><span className="text-xs text-muted">{conn?.resource_label}</span></div>
                   <Segmented size="sm" value={String(day) as '0' | '1'} onChange={(v) => setDay(Number(v) as 0 | 1)} options={[{ value: '0', label: 'Today' }, { value: '1', label: 'Tomorrow' }]} />
-                  <div className="mt-3"><DurationDial value={duration} onChange={setDuration} /></div>
+                  <div className="mt-3"><DurationDial value={durationDraft ?? duration} onChange={setDurationDraft} onCommit={(value) => commitInput(duration, setDuration, setDurationDraft, value)} /></div>
                   <p className="mt-4 text-xs font-medium text-ink-2">Choose your arrival time</p>
                   <div className="no-scrollbar -mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1">
                     {(slots.data ?? []).map((t) => (
@@ -268,9 +280,9 @@ export default function Station() {
                     <div className="mt-3">
                       <div className="mb-2 flex justify-between text-sm">
                         <span className="text-muted">Grid energy</span>
-                        <span className="font-semibold">{gridKwh.toFixed(1)} kWh</span>
+                        <span className="font-semibold">{(energyDraft ?? gridKwh).toFixed(1)} kWh</span>
                       </div>
-                      <Range label="Grid energy kWh" value={gridKwh} min={1} max={30} step={0.5} onChange={setGridKwh} />
+                      <Range label="Grid energy kWh" value={energyDraft ?? gridKwh} min={1} max={30} step={0.5} onChange={setEnergyDraft} onCommit={(value) => commitInput(gridKwh, setGridKwh, setEnergyDraft, value)} />
                     </div>
                   ) : (
                     <div className="mt-3">
@@ -278,9 +290,9 @@ export default function Station() {
                         <span className="text-muted">
                           From {soc}% to
                         </span>
-                        <span className="font-semibold">{target}%</span>
+                        <span className="font-semibold">{targetDraft ?? target}%</span>
                       </div>
-                      <Range label="Battery target" value={target} min={Math.min(100, (soc ?? 0) + 1)} max={100} onChange={setTarget} />
+                      <Range label="Battery target" value={targetDraft ?? target} min={Math.min(100, (soc ?? 0) + 1)} max={100} onChange={setTargetDraft} onCommit={(value) => commitInput(target, setTarget, setTargetDraft, value)} />
                     </div>
                   )}
                 </div>
@@ -338,7 +350,7 @@ export default function Station() {
                     I accept the booking policy ({POLICY.version}): host confirms within 2 min, checkout within 5 min, full refund of unused service if cancelled. Don’t travel until the host confirms.
                   </span>
                 </label>
-                <Button size="lg" className="w-full" disabled={!quote || !accepted || quoteValid <= 0} loading={busy === 'book'} onClick={() => setEquipmentOpen(true)}>
+                <Button size="lg" className="w-full" disabled={!quote || !accepted || quoteValid <= 0 || editing || quoting} loading={busy === 'book'} onClick={() => setEquipmentOpen(true)}>
                   Request booking {quote ? `· ${rupees(quote.snapshot.total_paise)}` : ''}
                 </Button>
                 <p className="flex items-start gap-2 text-xs text-muted">

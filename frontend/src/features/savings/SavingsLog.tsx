@@ -18,14 +18,10 @@ export function SavingsLog({ userId, inputs }: { userId: string; inputs: Savings
   const total = selected.reduce((sum, entry) => sum + (calculateSavings(entry.inputs)?.saved ?? 0), 0)
   return (
     <section className="mt-7">
-      <h2 className="mb-3 text-xl font-semibold">Your driving journal</h2>
+      <h2 className="mb-3 text-xl font-semibold">Drive log</h2>
       <Card className="border border-line !p-5">
-        <p className="text-xs leading-relaxed text-muted">
-          Record a distance from the calculator above. Each entry keeps its own price assumptions. Enter only the distance for that day to
-          avoid double counting.
-        </p>
         <form
-          className="mt-4 space-y-3"
+          className="grid grid-cols-2 items-end gap-3"
           onSubmit={(e) => {
             e.preventDefault()
             if (!calculateSavings(inputs) || inputs.km <= 0) return
@@ -44,7 +40,7 @@ export function SavingsLog({ userId, inputs }: { userId: string; inputs: Savings
             />
           </label>
           <Button type="submit" className="w-full" disabled={!calculateSavings(inputs) || inputs.km <= 0 || !date}>
-            Record drive
+            Log {Number.isFinite(inputs.km) ? inputs.km.toLocaleString('en-IN') + ' km' : 'drive'}
           </Button>
         </form>
         <label className="mt-6 block text-xs">
@@ -61,7 +57,7 @@ export function SavingsLog({ userId, inputs }: { userId: string; inputs: Savings
             {selected.reduce((sum, entry) => sum + entry.inputs.km, 0).toLocaleString('en-IN')} km recorded · {selected.length} drives
           </p>
           <p className="mt-2 text-2xl font-medium text-volt">{money(total)}</p>
-          <p className="text-xs text-muted">Estimated energy savings for this month</p>
+          <p className="text-xs text-muted">Estimated monthly savings</p>
         </div>
         <div className="mt-3 divide-y divide-line">
           {selected.map((entry) => (

@@ -1,10 +1,12 @@
-import { Check, MessageCircle, Plus, ThumbsUp, Users } from 'lucide-react'
+import { Bookmark, ChevronDown, MessageCircle, Plus, ThumbsUp, Zap } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { uuid } from '../../lib/ids'
-import { useSession } from '../../app/hooks'
+import { useDataVersion, useSession } from '../../app/hooks'
 import { Page, PageHeader } from '../../components/Shell'
 import { Button, Card, Sheet } from '../../components/ui'
-import { LEARNINGS, SOCIETIES, type Learning, type LearningCategory } from './fixtures'
+import { CIRCLE_CHARGING, LEARNINGS, SOCIETIES, type Learning, type LearningCategory } from './fixtures'
+import { listAmpereStations, useSavedStations } from '../stations/saved'
 import { useDemoState } from '../shared/useDemoState'
 
 export default function Society() {
@@ -18,6 +20,10 @@ export default function Society() {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [category, setCategory] = useState<LearningCategory>('Charging')
+  useDataVersion()
+  const saved = useSavedStations(user.id)
+  const circle = CIRCLE_CHARGING[society] ?? CIRCLE_CHARGING[SOCIETIES[0]]
+  const chargers = listAmpereStations().filter((station) => circle.stationIds.includes(station.id))
   const isJoined = joined.includes(society)
   const feed = [...posts, ...LEARNINGS].filter((post) => post.society === society && (filter === 'All' || post.category === filter))
   function share() {
@@ -29,15 +35,11 @@ export default function Society() {
   }
   return (
     <>
-      <PageHeader back title="Society hub" subtitle="Small learnings. Better charging." />
+      <PageHeader back title="Society hub" />
       <Page className="mx-auto max-w-2xl">
-        <p className="mb-5 text-xs leading-relaxed text-muted">
-          Demo communities and sample posts. Your contributions stay in this browser and are not published to other people.
-        </p>
-        <Card className="border border-line !rounded-[2rem] !p-5">
-          <Users className="size-8 text-volt" />
-          <label className="mt-5 block text-xs font-medium text-muted">
-            Your society
+        <Card className="border border-line !rounded-[2rem] !p-4">
+          <label className="block text-xs font-medium text-muted">
+            Charging circle
             <select
               value={society}
               onChange={(e) => setSociety(e.target.value)}
@@ -48,29 +50,47 @@ export default function Society() {
               ))}
             </select>
           </label>
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-ink-2">{isJoined ? 'You joined this demo circle.' : 'Join to share a learning with this circle.'}</p>
-            <Button
-              size="sm"
-              variant={isJoined ? 'secondary' : 'primary'}
-              onClick={() => setJoined(isJoined ? joined.filter((name) => name !== society) : [...joined, society])}
-            >
-              {isJoined ? (
-                <>
-                  <Check className="size-4" />
-                  Leave circle
-                </>
-              ) : (
-                'Join circle'
-              )}
-            </Button>
-          </div>
         </Card>
-        <div className="mb-4 mt-7 flex items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold">Shared learnings</h2>
+        <section aria-labelledby="circle-chargers" className="mt-5">
+          <h2 id="circle-chargers" className="mb-2 text-lg font-semibold">Chargers in {circle.area}</h2>
+          {chargers.length ? (
+            <ul className="space-y-2">
+              {chargers.map((charger) => (
+                <li key={charger.id} className="flex min-w-0 items-center gap-2 rounded-2xl border border-line p-3">
+                  <Link to={`/station/${charger.id}`} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-volt-soft text-volt"><Zap className="size-4" aria-hidden="true" /></span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold">{charger.name}</span>
+                      <span className="block text-xs text-muted">{charger.connectors}</span>
+                      <span className="mt-1 block text-xs font-semibold text-volt">View booking options</span>
+                    </span>
+                  </Link>
+                  <button type="button" aria-label={`Save ${charger.name}`} aria-pressed={saved.isSaved(charger.id)} onClick={() => saved.toggle(charger.id)}
+                    className="grid size-11 shrink-0 place-items-center rounded-full bg-surface-2 text-volt">
+                    <Bookmark className={`size-4 ${saved.isSaved(charger.id) ? 'fill-current' : ''}`} aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Card className="border border-line !p-4">
+              <p className="mb-2 text-sm text-muted">No circle chargers listed yet.</p>
+              <Link to="/discover" className="inline-flex min-h-11 items-center text-sm font-semibold text-volt">Find reachable chargers</Link>
+            </Card>
+          )}
+        </section>
+        <details className="group mt-5 rounded-2xl border border-line px-4">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-sm font-semibold [&::-webkit-details-marker]:hidden">
+            Circle learnings <ChevronDown className="size-4 text-muted group-open:rotate-180" aria-hidden="true" />
+          </summary>
+          <p className="text-xs text-muted">Sample posts. Your notes stay on this device.</p>
+        <div className="mb-3 mt-3 flex items-center justify-between gap-3">
+          <Button size="sm" variant="secondary" onClick={() => setJoined(isJoined ? joined.filter((name) => name !== society) : [...joined, society])}>
+            {isJoined ? 'Leave circle' : 'Join circle'}
+          </Button>
           <Button size="sm" disabled={!isJoined} onClick={() => setOpen(true)}>
             <Plus className="size-4" />
-            Share
+            Add note
           </Button>
         </div>
         <div className="mb-5 flex flex-wrap gap-2" aria-label="Learning topics">
@@ -85,7 +105,7 @@ export default function Society() {
             </button>
           ))}
         </div>
-        <div className="space-y-4">
+        <div className="space-y-3 pb-3">
           {feed.map((post) => (
             <Card as="article" key={post.id} className="border border-line !rounded-[1.75rem] !p-5">
               <p className="text-[11px] font-medium text-volt">{post.category}</p>
@@ -111,11 +131,8 @@ export default function Society() {
             </Card>
           ) : null}
         </div>
-        <p className="mt-5 text-xs leading-relaxed text-muted">
-          Share experience, not personal addresses or access codes. Sample tips are community discussion, not electrical installation
-          advice.
-        </p>
-        <Sheet open={open} onClose={() => setOpen(false)} title="Share a learning">
+        </details>
+        <Sheet open={open} onClose={() => setOpen(false)} title="Add a circle note">
           <form
             onSubmit={(e) => {
               e.preventDefault()
@@ -158,7 +175,6 @@ export default function Society() {
                 placeholder="Share something useful for another driver…"
               />
             </label>
-            <p className="text-xs text-muted">Saved only on this device. No message is sent.</p>
             <Button type="submit" disabled={!isJoined || !title.trim() || !body.trim()} className="w-full">
               Save learning
             </Button>

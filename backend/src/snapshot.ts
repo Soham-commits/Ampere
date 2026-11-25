@@ -1,3 +1,4 @@
+import { VEHICLE_CATALOGUE } from '../../frontend/src/domain/catalogue'
 import { bookings as B, occupancy, readDb, readStream, type BookingEvent, type Db, type User } from './engine'
 
 /*
@@ -11,6 +12,7 @@ export interface Snapshot {
   server_now: number
   actor_id: string | null
   db: Db
+  vehicle_catalogue: typeof VEHICLE_CATALOGUE
   streams: Record<string, BookingEvent[]>
   /** Anonymous held ranges per charger, so the bay picker can grey out taken slots. */
   occupancy: Record<string, { start: number; end: number }[]>
@@ -52,6 +54,7 @@ export function snapshotFor(actor: User | null): Snapshot {
     server_now: Date.now(),
     actor_id: actor?.id ?? null,
     db: projected,
+    vehicle_catalogue: VEHICLE_CATALOGUE,
     streams: Object.fromEntries(visible.map((h) => [h.id, readStream(h.id)])),
     occupancy: Object.fromEntries(db.resources.map((r) => [r.id, occupancy(r.id).map(({ start, end }) => ({ start, end }))])),
   }

@@ -1,3 +1,4 @@
+import type { TripInterpretation } from '../features/trips/interpretation'
 import type { EquipmentChoice } from '../domain/equipment'
 /*
  * Client-facing API facade. Mirrors the proposed /api routes from the spec, but runs
@@ -14,10 +15,14 @@ import { mutateDb, readDb, resetDemo, serverNow } from './db'
 import { nextSlots } from './availability'
 import { istParts } from '../lib/time'
 import { currentUser } from './session'
+import { modelById } from '../domain/catalogue'
 
 const ctx = () => ({ actor: currentUser() })
 
 export const api = {
+  interpretTrip: (_prompt: string) => handle<TripInterpretation>(() => {
+    throw new ApiFail('AI_UNAVAILABLE', 'AI trip requests are available in the server-backed app.', 503)
+  }),
   // Discovery
   searchChargers: (input: SearchInput) => handle(() => searchChargers(input)),
   siteDetail: (siteId: string) => handle(() => siteDetail(siteId)),
@@ -26,6 +31,7 @@ export const api = {
   updateVehicle: (vehicleId: string, patch: { soc?: number; target_soc?: number; model_id?: string; nickname?: string }) =>
     handle(async () => {
       const actor = requireActor(ctx())
+      if (patch.model_id !== undefined && !modelById(patch.model_id)) throw new ApiFail('VEHICLE_REQUIRED', 'Choose a reviewed car profile.', 400)
       if (patch.soc !== undefined && !(patch.soc >= 0 && patch.soc <= 100)) throw new ApiFail('INVALID_SOC', 'Battery must be 0–100%.', 400)
       if (patch.target_soc !== undefined && !(patch.target_soc > 0 && patch.target_soc <= 100)) throw new ApiFail('INVALID_TARGET', 'Target must be 1–100%.', 400)
       await mutateDb((d) => {

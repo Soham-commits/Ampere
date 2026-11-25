@@ -7,6 +7,9 @@
  */
 import type { BookingEvent } from '../../frontend/src/domain/booking'
 import type { Db } from '../../frontend/src/server/db'
+import type { VehicleModel } from '../../frontend/src/domain/types'
+
+type VehicleCatalogue = { version: string; models: VehicleModel[] }
 
 export type RealtimeMessage = { kind: 'booking_event'; booking_id: string; event: unknown } | { kind: 'db_changed' } | { kind: 'reset' }
 
@@ -14,6 +17,7 @@ interface Snapshot {
   server_now: number
   actor_id: string | null
   db: Db
+  vehicle_catalogue: VehicleCatalogue
   streams: Record<string, BookingEvent[]>
   occupancy: Record<string, { start: number; end: number }[]>
 }
@@ -148,8 +152,9 @@ function emptyDb(): Db {
   }
 }
 
-export const replica: { db: Db; streams: Record<string, BookingEvent[]>; occupancy: Snapshot['occupancy']; skew: number; actorId: string | null } = {
+export const replica: { db: Db; vehicleCatalogue: VehicleCatalogue; streams: Record<string, BookingEvent[]>; occupancy: Snapshot['occupancy']; skew: number; actorId: string | null } = {
   db: emptyDb(),
+  vehicleCatalogue: { version: '', models: [] },
   streams: {},
   occupancy: {},
   skew: 0,
@@ -177,6 +182,7 @@ export function refresh(): Promise<void> {
       // Only adopt a snapshot for the account this tab is still signed in as (it may have switched mid-request).
       if ((snap.actor_id ?? null) !== (sessionStore.userId() ?? null)) continue
       replica.db = snap.db
+      replica.vehicleCatalogue = snap.vehicle_catalogue
       replica.streams = snap.streams
       replica.occupancy = snap.occupancy
       replica.actorId = snap.actor_id

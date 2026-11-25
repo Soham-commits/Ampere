@@ -38,7 +38,15 @@ export interface VehicleModel {
   dc_limit_kw: number
   consumption_kwh_per_km: number
   connectors: VehicleConnectorSupport[]
-  evidence: 'DEMO_PROFILE' | 'UNVERIFIED_MANUAL'
+  evidence: 'DEMO_PROFILE' | 'UNVERIFIED_MANUAL' | 'OEM_REFERENCED'
+  published_specs?: {
+    pack_kwh: number
+    usable_kwh: number | null
+    ac_kw: number | null
+    dc_kw: number | null
+    source: string
+    reviewed_on: string
+  }
   evidence_note: string
   is_demo: true
 }

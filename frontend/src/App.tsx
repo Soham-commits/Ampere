@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation, useSearchParams } from 'react-router-dom'
 import { useSession } from './app/hooks'
 import { homePath, Shell } from './components/Shell'
@@ -65,6 +65,19 @@ function Root() {
 
 export function App() {
   const [ready, setReady] = useState(false)
+  const { pathname } = useLocation()
+
+  useLayoutEffect(() => {
+    const previous = window.history.scrollRestoration
+    window.history.scrollRestoration = 'manual'
+    return () => { window.history.scrollRestoration = previous }
+  }, [])
+
+  // Search parameters also drive in-page controls, so only a new page resets scroll.
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [pathname])
+
   useEffect(() => {
     ensureSeeded().then(() => setReady(true))
     // Expiry worker. Every tab may run it; each append re-checks under the resource and booking locks.

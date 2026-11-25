@@ -204,6 +204,12 @@ The backend reads these. Copy [`backend/example.env`](backend/example.env) to `b
 | `OCM_API_KEY` | none | Only for `npm run import:chargers`. Free key from Open Charge Map |
 | `IMPORT_RADIUS_KM`, `OSRM_URL` | `20`, public OSRM | Optional settings for the charger import |
 
+### AI trip requests
+
+In the server-backed Trip Planner, open **Ask Ampere** and enter a supported trip, such as “Pune to Mumbai, arrive with 20%.” Review the route and battery inputs before applying them. The route planner uses the selected vehicle and independently checks the battery targets.
+
+Set `OPENAI_API_KEY` in the ignored `backend/.env` and restart the backend. The server also accepts an exported key or one in the repository’s ignored root `.env`. The key stays on the server. Manual planning and the **Range settings** presets work without it.
+
 ## Quick demo walkthrough
 
 1. Sign in as **Aarav**, a driver at MIT-WPU with a Nexon EV at 4% battery. Home shows a 4.0 km road budget.

@@ -8,6 +8,7 @@ import { createRealtime } from './realtime'
 import { createMethods, runJury } from './rpc'
 import { snapshotFor } from './snapshot'
 import { syncRealChargers } from './seed/realChargers'
+import { tripInterpretationRoutes } from './tripInterpretation'
 import { serveWeb } from './static'
 import { connect, migrate, type Sql } from './store/pg'
 import { createPersistence, PersistenceError } from './store/persist'
@@ -38,6 +39,8 @@ export async function createServer(opts: { databaseUrl?: string; worker?: boolea
     if (!issued) return c.json({ ok: false, error: { code: 'UNKNOWN_ACCOUNT', message: 'Unknown demo account.' } }, 404)
     return c.json({ ok: true, data: { user_id: body.user_id, ...issued } })
   })
+
+  app.route('/api/trips', tripInterpretationRoutes(actorOf))
 
   app.get('/api/snapshot', (c) => c.json(snapshotFor(actorOf(c))))
 

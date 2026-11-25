@@ -1,3 +1,4 @@
+import { modelById } from '../server/db'
 import { ProfileTools } from '../components/ProfileTools'
 import { SavedStations } from '../components/SavedStations'
 import { ArrowUpRight, BatteryCharging, Gauge, Target, LogOut } from 'lucide-react'
@@ -5,12 +6,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useSession } from '../app/hooks'
 import { useMyVehicle } from '../app/useMyVehicle'
 import { rangeBudget } from '../domain/calc'
-import { CONNECTOR_LABEL, modelById } from '../domain/catalogue'
+import { CONNECTOR_LABEL } from '../domain/catalogue'
 import { POLICY } from '../domain/policy'
 import { Avatar } from '../components/Shell'
 import { Page, PageHeader } from '../components/Shell'
 import { BarGauge, Button, Card, Chip, Range } from '../components/ui'
-import { api } from '../server/api'
+import { useVehicleSlider } from '../app/useVehicleSlider'
 import { signOut } from '../server/session'
 
 export default function Settings() {
@@ -18,7 +19,9 @@ export default function Settings() {
   const nav = useNavigate()
   const vehicle = useMyVehicle()
   const model = vehicle ? modelById(vehicle.model_id) : undefined
-  const budget = vehicle && model ? rangeBudget(model, vehicle.soc, POLICY) : null
+  const battery = useVehicleSlider(vehicle, 'soc')
+  const soc = battery.value ?? 0
+  const budget = vehicle && model ? rangeBudget(model, soc, POLICY) : null
 
   return (
     <>
@@ -51,11 +54,11 @@ export default function Settings() {
             <div className="grid grid-cols-2 gap-3">
               <Card className="row-span-2 flex min-w-0 flex-col !rounded-[1.75rem] !p-4">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-ink-2"><BatteryCharging className="size-4 shrink-0" /> Battery level</div>
-                <div className="mt-6 flex items-baseline gap-1"><span className="text-[2.6rem] font-medium leading-none tracking-tight">{vehicle.soc}</span><span className="text-lg text-ink-2">%</span></div>
+                <div className="mt-6 flex items-baseline gap-1"><span className="text-[2.6rem] font-medium leading-none tracking-tight">{soc}</span><span className="text-lg text-ink-2">%</span></div>
                 <div className="mt-auto pt-7">
                   <div className="mb-2 flex justify-between text-[10px] text-muted"><span>0%</span><span>100%</span></div>
-                  <BarGauge value={vehicle.soc} segments={11} tone="volt" height="h-14" />
-                  <Range className="mt-4" label="Profile battery level" value={vehicle.soc} min={0} max={100} onChange={(soc) => void api.updateVehicle(vehicle.id, { soc })} />
+                  <BarGauge value={soc} segments={11} tone="volt" height="h-14" />
+                  <Range className="mt-4" label="Profile battery level" value={soc} min={0} max={100} onChange={battery.onChange} onCommit={battery.onCommit} />
                 </div>
               </Card>
               <Card className="min-w-0 !rounded-[1.75rem] !p-4">

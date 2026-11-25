@@ -1,3 +1,5 @@
+import { energyAboveReserve } from '../../domain/calc'
+
 export interface RouteCharger {
   id: string
   name: string
@@ -16,7 +18,11 @@ export interface TripPlan {
   problem: string | null
 }
 
-/** Illustrative corridor distances, constant consumption and 90% charging efficiency. */
+export const STOP_RESERVE = 10
+export const CHARGE_CAP = 80
+const EPSILON = 1e-8
+
+/** Finds a feasible itinerary with the fewest stops, then charges only as much as each next leg needs. */
 export function planTrip(
   distanceKm: number,
   batteryKwh: number,
@@ -24,48 +30,69 @@ export function planTrip(
   initialSoc: number,
   chargers: RouteCharger[],
   vehiclePowerKw: number,
+  minimumArrivalSoc = STOP_RESERVE,
 ): TripPlan {
   if (
-    ![distanceKm, batteryKwh, consumption, initialSoc, vehiclePowerKw].every(Number.isFinite) ||
-    distanceKm <= 0 ||
-    batteryKwh <= 0 ||
-    consumption <= 0 ||
-    initialSoc < 0 ||
-    initialSoc > 100 ||
-    vehiclePowerKw <= 0
-  ) {
-    return { stops: [], arrivalSoc: null, problem: 'Enter valid battery and vehicle values.' }
-  }
-  const reserve = batteryKwh * 0.1
-  let energy = (batteryKwh * initialSoc) / 100
-  let position = 0
-  const stops: TripStop[] = []
+    ![distanceKm, batteryKwh, consumption, initialSoc, vehiclePowerKw, minimumArrivalSoc].every(Number.isFinite) ||
+    distanceKm <= 0 || batteryKwh <= 0 || consumption <= 0 || vehiclePowerKw <= 0 ||
+    initialSoc < 0 || initialSoc > 100 || minimumArrivalSoc < 0 || minimumArrivalSoc > 100
+  ) return { stops: [], arrivalSoc: null, problem: 'Enter valid battery and vehicle values.' }
+
+  const arrivalTarget = Math.max(STOP_RESERVE, minimumArrivalSoc)
   const candidates = chargers
     .filter((c) => Number.isFinite(c.km) && c.km > 0 && c.km < distanceKm && Number.isFinite(c.powerKw) && c.powerKw > 0)
     .sort((a, b) => a.km - b.km)
-  while (energy - (distanceKm - position) * consumption < reserve) {
-    const reachable = candidates.filter((c) => c.km > position && energy - (c.km - position) * consumption >= reserve)
-    const stop = reachable.at(-1)
-    if (!stop)
-      return {
-        stops,
-        arrivalSoc: null,
-        problem: stops.length
-          ? 'No compatible sample stop is reachable on the next leg. Choose another route or charge further before leaving.'
-          : 'Charge before departure: no sample stop is reachable with a 10% reserve.',
-      }
-    energy -= (stop.km - position) * consumption
-    const arrivalSoc = (energy / batteryKwh) * 100
-    const chargeKwh = Math.max(0, batteryKwh * 0.8 - energy)
-    energy += chargeKwh
-    stops.push({
-      ...stop,
-      arrivalSoc,
-      departureSoc: (energy / batteryKwh) * 100,
-      chargeKwh,
-      minutes: Math.ceil((chargeKwh / (Math.min(stop.powerKw, vehiclePowerKw) * 0.9)) * 60),
-    })
-    position = stop.km
+  const reachable = (from: number, to: number, soc: number, reserve: number) =>
+    (to - from) * consumption <= energyAboveReserve(batteryKwh, soc, reserve) + EPSILON
+  const remainingStops = candidates.map(() => Infinity)
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    const { km } = candidates[i]
+    if (reachable(km, distanceKm, CHARGE_CAP, arrivalTarget)) remainingStops[i] = 0
+    for (let j = i + 1; j < candidates.length; j++) {
+      if (candidates[j].km > km && reachable(km, candidates[j].km, CHARGE_CAP, STOP_RESERVE))
+        remainingStops[i] = Math.min(remainingStops[i], 1 + remainingStops[j])
+    }
   }
-  return { stops, arrivalSoc: ((energy - (distanceKm - position) * consumption) / batteryKwh) * 100, problem: null }
+
+  const itinerary: RouteCharger[] = []
+  let position = 0
+  let soc = initialSoc
+  while (!reachable(position, distanceKm, soc, arrivalTarget)) {
+    let chosen = -1
+    for (let i = 0; i < candidates.length; i++) {
+      const { km } = candidates[i]
+      if (km > position && reachable(position, km, soc, STOP_RESERVE) &&
+          (chosen === -1 || remainingStops[i] <= remainingStops[chosen])) chosen = i
+    }
+    if (chosen === -1) break
+    itinerary.push(candidates[chosen])
+    position = candidates[chosen].km
+    soc = CHARGE_CAP
+  }
+
+  const complete = reachable(position, distanceKm, soc, arrivalTarget)
+  const stops: TripStop[] = []
+  let previousKm = 0
+  let departureSoc = initialSoc
+  for (const [index, stop] of itinerary.entries()) {
+    const arrivalSoc = departureSoc - (stop.km - previousKm) * consumption * 100 / batteryKwh
+    const next = itinerary[index + 1]
+    const requiredSoc = next || complete
+      ? (next ? STOP_RESERVE : arrivalTarget) + ((next?.km ?? distanceKm) - stop.km) * consumption * 100 / batteryKwh
+      : arrivalSoc
+    departureSoc = Math.max(arrivalSoc, Math.min(CHARGE_CAP, requiredSoc))
+    const chargeKwh = energyAboveReserve(batteryKwh, departureSoc, arrivalSoc)
+    stops.push({ ...stop, arrivalSoc, departureSoc, chargeKwh, minutes: Math.ceil(Math.max(0, chargeKwh * 60 / (Math.min(stop.powerKw, vehiclePowerKw) * 0.9) - EPSILON)) })
+    previousKm = stop.km
+  }
+
+  if (!complete) return {
+    stops,
+    arrivalSoc: null,
+    problem: itinerary.length
+      ? `No feasible next leg from ${itinerary.at(-1)!.name} with a ${STOP_RESERVE}% stop reserve and ${arrivalTarget}% destination target.`
+      : `Charge before departure or choose another route: the first stop or destination is outside your battery budget.`,
+  }
+  const arrivalSoc = departureSoc - (distanceKm - previousKm) * consumption * 100 / batteryKwh
+  return { stops, arrivalSoc: Math.max(arrivalTarget, arrivalSoc), problem: null }
 }

@@ -1,4 +1,10 @@
 export const SOCIETIES = ['Koregaon Park EV circle', 'Kalyani Nagar residents', 'Baner charging community']
+/** Existing Ampere listings in each demo circle's area. */
+export const CIRCLE_CHARGING: Record<string, { area: string; stationIds: string[] }> = {
+  [SOCIETIES[0]]: { area: 'Koregaon Park', stationIds: ['site-cafe', 'site-riverside', 'site-lane7'] },
+  [SOCIETIES[1]]: { area: 'Kalyani Nagar', stationIds: ['site-home', 'site-courtyard'] },
+  [SOCIETIES[2]]: { area: 'Baner', stationIds: [] },
+}
 export type LearningCategory = 'Charging' | 'Etiquette' | 'Solar'
 export interface Learning {
   id: string

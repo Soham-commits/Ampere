@@ -6,16 +6,22 @@ import { cn } from '../lib/cn'
 import { useNotifications } from '../app/notifications'
 import { IconButton } from './ui'
 
+export function AmpereMark({ className, dark }: { className?: string; dark?: boolean }) {
+  return (
+    <svg viewBox="0 0 512 512" className={className} aria-hidden>
+      <rect width="512" height="512" rx="120" fill={dark ? '#fff' : '#0e0f0e'} />
+      <g fill="none" stroke={dark ? '#d8dad4' : '#3a3d39'} strokeWidth="10">
+        <rect x="176" y="96" width="160" height="320" rx="72" />
+      </g>
+      <path d="M276 104 172 284h78l-22 124 112-188h-80z" fill="#3560cf" />
+    </svg>
+  )
+}
+
 export function Logo({ className, dark }: { className?: string; dark?: boolean }) {
   return (
     <span className={cn('inline-flex items-center gap-2 font-semibold tracking-tight', className)}>
-      <svg viewBox="0 0 512 512" className="size-8" aria-hidden>
-        <rect width="512" height="512" rx="120" fill={dark ? '#fff' : '#0e0f0e'} />
-        <g fill="none" stroke={dark ? '#d8dad4' : '#3a3d39'} strokeWidth="10">
-          <rect x="176" y="96" width="160" height="320" rx="72" />
-        </g>
-        <path d="M276 104 172 284h78l-22 124 112-188h-80z" fill="#3560cf" />
-      </svg>
+      <AmpereMark dark={dark} className="size-8" />
       <span className="text-xl">Ampere</span>
     </span>
   )

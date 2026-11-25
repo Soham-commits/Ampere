@@ -77,6 +77,28 @@ const CCS2_DC = { standard: 'CCS2' as const, mode: 'DC' as const, adapter_requir
 
 const DEMO_NOTE = 'Labelled demonstration profile. Values are planning assumptions, not manufacturer-verified specifications.'
 
+const NEXON_SOURCE = 'https://ev.tatamotors.com/content/dam/tml/ev/products/nexon/year-2024/ev/promoting-vc/brochure/nexon-ev-mr-and-45-brochure.pdf'
+const XUV400_SOURCE = 'https://auto.mahindra.com/on/demandware.static/-/Sites-amc-Library/default/dw4dc915da/mahindraelectricimages/images/xuv400images/XUV400ProRangeBrochure.pdf'
+
+function publishedVariant(
+  id: string, make: string, model: string, variant: string, packKwh: number,
+  usableWh: number, consumption: number, acKw: number, dcKw: number, source: string,
+): VehicleModel {
+  return {
+    id, make, model, variant,
+    aliases: [`${make} ${model} ${packKwh} kwh`.toLowerCase()],
+    usable_battery_wh: usableWh,
+    consumption_kwh_per_km: consumption,
+    ac_limit_kw: acKw,
+    dc_limit_kw: dcKw,
+    connectors: [TYPE2_AC, CCS2_DC],
+    evidence: 'OEM_REFERENCED',
+    evidence_note: 'Pack size and CCS2 are manufacturer-sourced. Usable energy, consumption and charge power are demo planning assumptions.',
+    published_specs: { pack_kwh: packKwh, usable_kwh: null, ac_kw: null, dc_kw: null, source, reviewed_on: '2026-11-21' },
+    is_demo: true,
+  }
+}
+
 export const VEHICLE_MODELS: VehicleModel[] = [
   {
     id: 'vm-nexon-ev-demo',
@@ -153,7 +175,13 @@ export const VEHICLE_MODELS: VehicleModel[] = [
     evidence_note: DEMO_NOTE,
     is_demo: true,
   },
+  publishedVariant('vm-nexon-ev-mr-30', 'Tata', 'Nexon EV', 'MR · 30 kWh pack', 30, 27000, 0.17, 3.3, 25, NEXON_SOURCE),
+  publishedVariant('vm-nexon-ev-45', 'Tata', 'Nexon EV', '45 · 45 kWh pack', 45, 40500, 0.17, 3.3, 30, NEXON_SOURCE),
+  publishedVariant('vm-xuv400-ec-pro-345', 'Mahindra', 'XUV400', 'EC Pro · 34.5 kWh pack', 34.5, 31000, 0.18, 3.3, 30, XUV400_SOURCE),
+  publishedVariant('vm-xuv400-el-pro-394', 'Mahindra', 'XUV400', 'EL Pro · 39.4 kWh pack', 39.4, 35400, 0.18, 3.3, 30, XUV400_SOURCE),
 ]
+
+export const VEHICLE_CATALOGUE = { version: '2026-11-21', models: VEHICLE_MODELS }
 
 export const CONNECTOR_LABEL: Record<ConnectorStandard, string> = {
   TYPE2: 'Type 2',

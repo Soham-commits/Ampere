@@ -1,4 +1,22 @@
 import { randomBytes } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { parseEnv } from 'node:util'
+
+function readEnv(file: URL) {
+  try {
+    return parseEnv(readFileSync(file, 'utf8'))
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {}
+    throw error
+  }
+}
+
+const localEnv = readEnv(new URL('../.env', import.meta.url))
+const rootEnv = readEnv(new URL('../../.env', import.meta.url))
+for (const [name, value] of Object.entries(localEnv)) {
+  if (process.env[name] === undefined && name !== 'OPENAI_API_KEY') process.env[name] = value
+}
+
 
 /*
  * Must be the first import of every server entry point.
@@ -23,6 +41,8 @@ export const config = {
   /** Built landing page + /app/ (node scripts/build-web.mjs). Served when present. */
   webDir: process.env.WEB_DIR ?? new URL('../../dist', import.meta.url).pathname,
   workerIntervalMs: 2000,
+  openAiKey: process.env.OPENAI_API_KEY?.trim() || localEnv.OPENAI_API_KEY?.trim() || rootEnv.OPENAI_API_KEY?.trim() || '',
+  openAiModel: process.env.OPENAI_MODEL?.trim() || 'gpt-4.1-mini',
 }
 
 if (!process.env.TOKEN_SECRET) console.warn('[ampere] TOKEN_SECRET not set: using a random secret, so sessions reset on restart.')

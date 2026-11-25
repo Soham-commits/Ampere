@@ -19,3 +19,11 @@ export function serverNow(): number {
 export function ensureSeeded(): Promise<void> {
   return start()
 }
+
+export function readVehicleCatalogue() {
+  return replica.vehicleCatalogue
+}
+
+export function modelById(id: string) {
+  return readVehicleCatalogue().models.find((model) => model.id === id)
+}

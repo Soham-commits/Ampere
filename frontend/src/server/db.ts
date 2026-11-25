@@ -1,4 +1,4 @@
-import { buildCatalogue, type CatalogueSeed } from '../domain/catalogue'
+import { buildCatalogue, VEHICLE_CATALOGUE, type CatalogueSeed } from '../domain/catalogue'
 import type { QuoteSnapshot, VehicleSnapshot } from '../domain/booking'
 import type { AvailabilityException, LatLng, Plan } from '../domain/types'
 import { kvGet, kvKeys, kvRemove, kvSet, publish, subscribe, withLocks } from './storage'
@@ -201,3 +201,11 @@ subscribe((m) => {
 })
 
 export { kvGet }
+
+export function readVehicleCatalogue() {
+  return VEHICLE_CATALOGUE
+}
+
+export function modelById(id: string) {
+  return readVehicleCatalogue().models.find((model) => model.id === id)
+}

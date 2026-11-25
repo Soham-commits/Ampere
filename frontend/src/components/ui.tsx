@@ -131,7 +131,7 @@ export function BarGauge({ value, segments = 12, className, tone = 'volt', heigh
         const f = Math.max(0, Math.min(1, filled - i))
         return (
           <span key={i} className="relative h-full flex-1 overflow-hidden rounded-full bg-line">
-            <span className={cn('absolute inset-x-0 bottom-0 rounded-full transition-all duration-500', color)} style={{ height: `${f * 100}%`, opacity: f > 0 && f < 1 ? 0.55 : 1 }} />
+            <span className={cn('absolute inset-x-0 bottom-0 rounded-full', color)} style={{ height: `${f * 100}%`, opacity: f > 0 && f < 1 ? 0.55 : 1 }} />
           </span>
         )
       })}
@@ -200,8 +200,35 @@ export function Field({ label, hint, error, children, className }: { label: stri
 
 export const inputClass = 'h-12 w-full rounded-2xl border border-line bg-surface px-4 text-[15px] outline-none transition placeholder:text-muted focus:border-ink'
 
-export function Range({ value, min, max, step = 1, onChange, label, className }: { value: number; min: number; max: number; step?: number; onChange: (v: number) => void; label: string; className?: string }) {
-  const pct = ((value - min) / (max - min)) * 100
+export function Range({ value, min, max, step = 1, onChange, onCommit, label, className }: {
+  value: number
+  min: number
+  max: number
+  step?: number
+  onChange: (value: number) => void
+  onCommit?: (value: number) => void
+  label: string
+  className?: string
+}) {
+  const gesture = useRef<{ pointer: number; value?: number } | null>(null)
+  const commit = useRef(onCommit)
+  useEffect(() => { commit.current = onCommit }, [onCommit])
+  useEffect(() => {
+    function finish(event: PointerEvent) {
+      const active = gesture.current
+      if (!active || active.pointer !== event.pointerId) return
+      gesture.current = null
+      if (active.value !== undefined) commit.current?.(active.value)
+    }
+    window.addEventListener('pointerup', finish)
+    window.addEventListener('pointercancel', finish)
+    return () => {
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', finish)
+    }
+  }, [])
+
+  const pct = max > min ? Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100)) : 0
   return (
     <input
       type="range"
@@ -210,8 +237,16 @@ export function Range({ value, min, max, step = 1, onChange, label, className }:
       min={min}
       max={max}
       step={step}
-      onChange={(e) => onChange(Number(e.target.value))}
-      className={cn('h-2 w-full cursor-pointer appearance-none rounded-full accent-[var(--color-ink)]', className)}
+      onPointerDown={(event) => {
+        if (onCommit && event.isPrimary && event.button === 0) gesture.current = { pointer: event.pointerId }
+      }}
+      onChange={(event) => {
+        const next = event.currentTarget.valueAsNumber
+        onChange(next)
+        if (gesture.current) gesture.current.value = next
+        else onCommit?.(next)
+      }}
+      className={cn('h-2 w-full touch-pan-y cursor-pointer appearance-none rounded-full accent-[var(--color-ink)]', className)}
       style={{ background: `linear-gradient(90deg, var(--color-volt) ${pct}%, var(--color-line) ${pct}%)` }}
     />
   )
@@ -219,7 +254,7 @@ export function Range({ value, min, max, step = 1, onChange, label, className }:
 
 /* ---------------- Sheet ---------------- */
 
-export function Sheet({ open, onClose, title, children, className }: { open: boolean; onClose: () => void; title?: ReactNode; children: ReactNode; className?: string }) {
+export function Sheet({ open, onClose, title, children, className, spring = false }: { open: boolean; onClose: () => void; title?: ReactNode; children: ReactNode; className?: string; spring?: boolean }) {
   const reduceMotion = useReducedMotion()
   const titleId = useId()
   const panel = useRef<HTMLDivElement>(null)
@@ -245,7 +280,7 @@ export function Sheet({ open, onClose, title, children, className }: { open: boo
     return () => {
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', onKey)
-      previousFocus?.focus()
+      previousFocus?.focus({ preventScroll: true })
     }
   }, [open])
   return createPortal(
@@ -260,10 +295,10 @@ export function Sheet({ open, onClose, title, children, className }: { open: boo
             aria-labelledby={title ? titleId : undefined}
             aria-label={title ? undefined : 'Dialog'}
             tabIndex={-1}
-            initial={{ y: reduceMotion ? 0 : 80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: reduceMotion ? 0 : 48, opacity: 0, transition: { duration: reduceMotion ? 0 : 0.25 } }}
-            transition={{ duration: reduceMotion ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ y: reduceMotion ? 0 : spring ? 34 : 80, scale: spring && !reduceMotion ? 0.98 : 1, opacity: 0 }}
+            animate={{ y: 0, scale: 1, opacity: 1 }}
+            exit={{ y: reduceMotion ? 0 : spring ? 24 : 48, scale: spring && !reduceMotion ? 0.985 : 1, opacity: 0, transition: { duration: reduceMotion ? 0 : 0.22, ease: [0.4, 0, 1, 1] } }}
+            transition={spring && !reduceMotion ? { type: 'spring', stiffness: 360, damping: 32, mass: 0.85 } : { duration: reduceMotion ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] }}
             className={cn('sheet-panel relative flex w-full min-w-0 max-w-lg flex-col overflow-hidden rounded-[28px] bg-surface shadow-float outline-none', className)}
           >
             <div className="shrink-0 px-5 pt-3">

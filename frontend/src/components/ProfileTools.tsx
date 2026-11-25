@@ -6,8 +6,8 @@ type ToolArtwork = 'route' | 'savings' | 'society' | 'connections'
 
 const PROFILE_TOOLS: { to: string; title: string; text: string; artwork: ToolArtwork; icon: typeof Route; wide?: boolean }[] = [
   { to: '/trip-planner', title: 'Plan a trip', text: 'A little planning. A longer drive.', artwork: 'route', icon: Route, wide: true },
-  { to: '/savings', title: 'Your savings', text: 'See what each drive saves.', artwork: 'savings', icon: Wallet },
-  { to: '/society', title: 'Society hub', text: 'Better charging, together.', artwork: 'society', icon: Users },
+  { to: '/savings', title: 'Your savings', text: 'Compare costs and log drives.', artwork: 'savings', icon: Wallet },
+  { to: '/society', title: 'Society hub', text: 'Find chargers in your circle.', artwork: 'society', icon: Users },
   { to: '/connections', title: 'Connections', text: 'Your car. Your fleet. In one place.', artwork: 'connections', icon: PlugZap, wide: true },
 ]
 

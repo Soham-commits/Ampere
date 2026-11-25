@@ -10,7 +10,7 @@ import { Countdown, OutcomeNotice } from '../components/booking'
 import { Page, PageHeader } from '../components/Shell'
 import { Button, Card, Chip, Dot, EmptyState, Field, inputClass, Notice, Sheet, Skeleton, useAction, useToast } from '../components/ui'
 import { LIFECYCLE_LABEL, type BookingState } from '../domain/booking'
-import { CONNECTOR_LABEL, modelById, userById } from '../domain/catalogue'
+import { CONNECTOR_LABEL, userById } from '../domain/catalogue'
 import { POLICY } from '../domain/policy'
 import type { SitePrivateAccess } from '../domain/types'
 import { cn } from '../lib/cn'
@@ -18,7 +18,7 @@ import { istDayLabel, istTime, kwh, minutes, rupees } from '../lib/format'
 import { uuid } from '../lib/ids'
 import { api } from '../server/api'
 import { allowedActions, arrivalWindow, sessionProgress } from '../server/bookings'
-import { readDb } from '../server/db'
+import { modelById, readDb } from '../server/db'
 
 export default function Booking() {
   const { id } = useParams()

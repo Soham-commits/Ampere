@@ -1,3 +1,4 @@
+import { modelById } from '../server/db'
 import { SolarBadge } from '../features/solar/SolarBadge'
 import { ChevronRight, Clock3, Zap, List, Map as MapIcon, MapPin, Navigation, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -7,7 +8,7 @@ import { SITE_TYPE_LABEL, StatusLine } from '../components/booking'
 import { ChargingBayPlan } from '../components/ChargingBayPlan'
 import { MapView, type MapSite } from '../components/MapView'
 import { Button, Card, Chip, EmptyState, Field, IconButton, Notice, Range, Segmented, Sheet, Skeleton } from '../components/ui'
-import { CONNECTOR_LABEL, modelById } from '../domain/catalogue'
+import { CONNECTOR_LABEL } from '../domain/catalogue'
 import type { ConnectorStandard, SiteType } from '../domain/types'
 import { cn } from '../lib/cn'
 import { istDayLabel, istTime, km, rupees } from '../lib/format'
@@ -15,7 +16,7 @@ import { MIT_WPU_ORIGIN } from '../domain/mockLocation'
 import { useBookableChargers } from '../features/discovery/useBookableChargers'
 import { filterChargers } from '../features/discovery/filterChargers'
 import { stationImage } from '../lib/stationImages'
-import { api } from '../server/api'
+import { useVehicleSlider } from '../app/useVehicleSlider'
 import type { SearchResult } from '../server/discovery'
 import { useMyVehicle } from '../app/useMyVehicle'
 
@@ -40,6 +41,8 @@ export default function Discover() {
   // Console deep links can override car inputs; the mock origin stays at MIT-WPU.
   const origin = MIT_WPU_ORIGIN
   const modelId = params.get('model') ?? vehicle?.model_id ?? null
+  const battery = useVehicleSlider(vehicle, 'soc')
+  const [batteryDraft, setBatteryDraft] = useState<number | null>(null)
   const soc = params.get('soc') !== null ? Number(params.get('soc')) : vehicle?.soc ?? null
   const connector = (params.get('connector') as ConnectorStandard | null) ?? undefined
   const siteType = (params.get('type') as SiteType | null) ?? undefined
@@ -132,13 +135,17 @@ export default function Discover() {
     <>
       <Sheet open={filterOpen} onClose={() => setFilterOpen(false)} title="Search inputs">
         <div className="space-y-5">
-          <Field label={`Battery now: ${soc}%`} hint="Entered by you — not live vehicle telemetry.">
+          <Field label={`Battery now: ${fromConsole || !vehicle ? batteryDraft ?? soc : battery.value ?? soc}%`} hint="Entered by you — not live vehicle telemetry.">
             <Range
               label="Battery"
-              value={soc}
+              value={fromConsole || !vehicle ? batteryDraft ?? soc : battery.value ?? soc}
               min={0}
               max={100}
-              onChange={(v) => (fromConsole || !vehicle ? setParam('soc', String(v)) : void api.updateVehicle(vehicle.id, { soc: v }))}
+              onChange={fromConsole || !vehicle ? setBatteryDraft : battery.onChange}
+              onCommit={fromConsole || !vehicle ? (value) => {
+                setParam('soc', String(value))
+                setBatteryDraft(null)
+              } : battery.onCommit}
             />
           </Field>
           <Field label="Connector">

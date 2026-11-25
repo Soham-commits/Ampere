@@ -12,6 +12,13 @@ describe('AT04 range budget', () => {
     expect(rangeBudget(nexon, 4, POLICY).range_budget_m).toBe(4000)
     expect(rangeBudget(nexon, 4, POLICY).energy_budget_kwh).toBe(0.8)
   })
+  it('uses different conservative budgets for exact variants at the same charge', () => {
+    const mr = modelById('vm-nexon-ev-mr-30')!
+    const xuv = modelById('vm-xuv400-el-pro-394')!
+    expect(rangeBudget(mr, 60, POLICY).range_budget_m).toBeLessThan(rangeBudget(xuv, 60, POLICY).range_budget_m)
+    expect(mr.published_specs?.pack_kwh).toBe(30)
+    expect(mr.published_specs?.usable_kwh).toBeNull()
+  })
   it('1.8 km passes, 6 km fails, missing route is unverified', () => {
     const b = rangeBudget(nexon, 4, POLICY)
     const r = (d: number) => ({ distance_m: d, duration_s: 0, provider: 'DEMO_FIXTURE' as const, observed_at: '', label: '' })

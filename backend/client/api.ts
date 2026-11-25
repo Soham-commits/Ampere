@@ -3,6 +3,7 @@
  * sent to the server (POST /api/rpc/<method>) and answered in the same { ok, data | error, request_id }
  * envelope. Changes are read back before a call resolves, so the next synchronous read sees them.
  */
+import type { TripInterpretation } from '../../frontend/src/features/trips/interpretation'
 import type { EquipmentChoice } from '../../frontend/src/domain/equipment'
 import type { CheckOutcome, ConnectorStandard, LatLng, ResourceStatus, Result, SiteType } from '../../frontend/src/domain/types'
 import type * as B from '../../frontend/src/server/bookings'
@@ -29,6 +30,13 @@ async function call<K extends keyof EngineApi>(method: K, ...args: unknown[]): P
 }
 
 export const api = {
+  async interpretTrip(prompt: string): Promise<Result<TripInterpretation>> {
+    try {
+      return await post<Result<TripInterpretation>>('/api/trips/interpret', { prompt })
+    } catch {
+      return { ok: false, error: { code: 'NETWORK', message: 'Could not reach the Ampere server.' }, request_id: '' }
+    }
+  },
   // Discovery
   searchChargers: (input: SearchInput) => call('searchChargers', input),
   siteDetail: (siteId: string) => call('siteDetail', siteId),
