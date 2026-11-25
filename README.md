@@ -1,245 +1,139 @@
-<div align="center">
+# Ampere
 
-#  Ampere
+**Find a charger your EV can reach, use, and book.**
 
-**One app to find EV charging.**
+<p align="center">
+  <img alt="React 19" src="https://img.shields.io/badge/React-19-087EA4?logo=react&amp;logoColor=white">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&amp;logoColor=white">
+  <img alt="Vite" src="https://img.shields.io/badge/Vite-646CFF?logo=vite&amp;logoColor=white">
+  <img alt="Leaflet" src="https://img.shields.io/badge/Leaflet-397F27?logo=leaflet&amp;logoColor=white">
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&amp;logoColor=white">
+</p>
 
-Find reachable, connector-compatible chargers around Pune and book community chargers hosted by cafés, offices and homes.
+<p align="center">
+  <img src="assets/readme/ampere-home.webp" width="23%" alt="Ampere Home with a map preview, reachable chargers, and battery and range controls">
+  <img src="assets/readme/ampere-profile.webp" width="40%" alt="Ampere Profile showing vehicle details, connector types, battery, range budget, and charge target">
+  <img src="assets/readme/ampere-bookings.webp" width="23%" alt="Ampere Bookings showing an upcoming reservation and its time, planned energy, and price">
+</p>
 
-</div>
+<p align="center"><em>Mobile demo mockups · Home, Profile, and Bookings with sample data</em></p>
 
-![Ampere project mockup: landing page on a laptop with the Pune Search mobile app in front](assets/project-mockup.png)
+## Overview
 
-> **Demo only.** Listings are synthetic. Payments, refunds, metering, receipts and payouts are simulated. Ampere is a working name, with brand clearance pending.
+A map pin alone cannot tell an EV driver whether a charger is within range, fits their car, or can be reserved. Ampere is a Pune-based prototype that filters chargers by an estimated road budget and plug compatibility, then lets drivers book a demo bay at a café, office, or residential site.
 
-## What is Ampere?
+Community listings and accounts are synthetic. Checkout, refunds, charging measurements, receipts, and payouts use simulated values. The backend also ships a snapshot of real public chargers from Open Charge Map with OSRM road distances measured from the console's demo origin. Those directory entries appear in the jury console and search API. The driver's Stations screen shows bookable demo sites.
 
-Ampere brings public EV charger discovery and private charger sharing into one application for India. A driver searches once, sees only the chargers their car can actually reach and plug into, compares access and price, and requests a confirmed slot. Hosts such as cafés, offices and homeowners offer their chargers through a managed journey.
+## Portals and features
 
-The full product thinking lives in the [Ampere Product Solution Document](Ampere_Solution_Document.md).
-
-## Demo
-
-There is no hosted deployment yet. The demo runs from a laptop, and phones on the same Wi-Fi use the network address the server prints at startup.
-
-| Link | What it opens |
+| Role | What to try |
 | --- | --- |
-| http://localhost:8787/ | Landing page, served by the backend (`cd backend && npm start`) |
-| http://localhost:8787/app/ | Charging app, with bookings stored in PostgreSQL |
-| http://localhost:8787/app/jury | Jury console (sign in as **Jury panel**) |
-| http://localhost:5173/ | Browser-only version from `npm run dev`, used as the offline fallback |
+| **Driver** · Aarav or Kabir | Edit a vehicle profile and battery level, find a charger, reserve a bay, track bookings, and see visit summaries and receipts. |
+| **Host** · Rohan or Meera | Submit and manage listings, configure schedules and blocked times, respond to booking requests, run demo charging sessions, and review illustrative earnings. |
+| **Operations** · Ops admin | Review listing checks, request changes, activate or suspend listings, and inspect the audit trail. |
+| **Jury** · Jury panel | Run `TICKET` to filter chargers and request a demo booking, then use the printed `READY` command to confirm it through the same booking services. |
 
-The [quick demo walkthrough](#quick-demo-walkthrough) lists the accounts and steps.
+### Driver workflows
 
-## Repository layout
+- **Discover** — Search eligible sites in map or list view. The driver starts from a fixed MIT-WPU location in Pune and provides their battery level. Ampere filters by estimated road range, connector, listing approval, and charger status.
+- **Reserve and charge** — Compare access and price, select a bay and time, confirm cable arrangements, then request host approval. Complete demo checkout, use an arrival code, and follow the session through charging and completion. Recent alerts distinguish booking and payment updates.
+- **Bookings and receipts** — Manage upcoming reservations and open completed visit summaries. The seeded receipt `AMP-DEMO02` includes an illustrative ₹132 revenue breakdown.
 
-Ampere ships as a single web app: the landing page is served at `/` and the charging app at `/app/`, both from one Vite project and one dev server. A separate Node server in `backend/` can serve the same app against Postgres.
+### Tools in Profile
 
-| Path | What it is | Stack |
-| --- | --- | --- |
-| [`/`](package.json) (`src/`, `index.html`, `public/`, `vite.config.js`) | Landing page with scroll animation and a phone-mockup hero. Its Vite config also mounts the charging app at `/app/` | Vite, GSAP, Lenis |
-| [`frontend/`](frontend/README.md) | The charging app, an installable front-end PWA that opens from the landing page | React 19, TypeScript, Tailwind CSS 4, Leaflet, Vite, Vitest |
-| [`backend/`](backend/README.md) | Server for the app: Postgres booking events, jury console, realtime, real public chargers | Node, Hono, PostgreSQL, Vitest |
-
-## Tech stack
-
-| Layer | Technology | Used for |
-| --- | --- | --- |
-| Landing page | Vite, GSAP, Lenis | Scroll animation and the phone-mockup hero |
-| Charging app | React 19, TypeScript, React Router, Tailwind CSS 4, lucide-react | Driver, host, admin and jury screens |
-| Maps | Leaflet, React Leaflet, OpenStreetMap tiles | Charger map and the range ring |
-| Offline mode | vite-plugin-pwa (Workbox) | Installable app with a service worker |
-| Server | Node 22+, Hono, `@hono/node-server`, TypeScript run with `tsx` | HTTP API, jury console, realtime (server-sent events), expiry worker |
-| Database | PostgreSQL 15+ (17 used locally) through the `postgres` client | Append-only booking events, demo state, overlap-proof charger holds |
-| Data | Open Charge Map (CC BY 4.0), OSRM | Real public chargers and their road distances |
-| Tests | Vitest, TypeScript compiler | 64 app tests, 22 server tests, type checks |
+- **Trip planner and saved stations** — Compare sample highway routes using departure battery, view suggested charging stops and pins on a map, save a plan on the device, and bookmark stations.
+- **Savings and driving journal** — Estimate EV versus fuel costs using editable assumptions and log drives.
+- **Society hub and solar badges** — Browse or save apartment-charging learnings and see illustrative solar information on supported listings.
+- **Connections and fleet planning** — Try simulated vehicle connections, inspect sample fleet vehicles, and save charging drafts. These tools use demo data and browser-local storage.
 
 ## Architecture
 
-```mermaid
-flowchart TB
-  subgraph Devices["Browser · installable PWA"]
-    Landing["Landing page /<br/>Vite · GSAP · Lenis"]
-    App["Charging app /app/<br/>React 19 · TypeScript · Tailwind · Leaflet<br/>discovery · booking · host dashboard · jury console"]
-    Client["backend/client<br/>same exports as frontend/src/server<br/>per-account replica · server clock"]
-    Sim["frontend/src/server<br/>in-browser simulation<br/>localStorage · Web Locks · BroadcastChannel"]
-  end
-
-  subgraph Server["backend/ · Node + Hono"]
-    API["HTTP API<br/>/api/session · /api/rpc/:method<br/>/api/console · /api/snapshot"]
-    Auth["Signed tab tokens<br/>actor derived on every request"]
-    Engine["Booking engine<br/>the app's own frontend/src/server code<br/>discovery · availability · bookings · jury"]
-    Persist["Write-through queue<br/>committed before the reply<br/>single server instance"]
-    Stream["Realtime · /api/stream (SSE)<br/>new events, filtered per account"]
-    Worker["Expiry worker · every 2 s<br/>2 min host window · 5 min checkout"]
-  end
-
-  subgraph DB["PostgreSQL"]
-    Events[("booking_events<br/>append-only, replayed")]
-    State[("app_state<br/>catalogue · quotes · payments")]
-    Holds[("resource_holds<br/>no-overlap constraint")]
-  end
-
-  Real["data/real-chargers.json<br/>Open Charge Map + OSRM road distances"]
-
-  Landing -- "Try Ampere Demo" --> App
-  App -- "npm run dev (default)" --> Sim
-  App -- "backend build" --> Client
-  Client -- "RPC + bearer token" --> API
-  API --> Auth --> Engine
-  Worker --> Engine
-  Engine --> Persist
-  Persist -- "insert event" --> Events
-  Persist -- "upsert" --> State
-  Events -- "trigger" --> Holds
-  Events -. "replay on boot and getEvents" .-> Engine
-  Persist -- "after commit" --> Stream
-  Stream -- "SSE" --> Client
-  Real -- "seeded on boot" --> Engine
-```
-
-The same React screens run in two modes. `npm run dev` at the root keeps everything in the browser: `frontend/src/server` simulates the server, database and realtime channel. The [`backend/`](backend/README.md) build swaps those modules at build time for network clients with the same exports, so the screens are unchanged while bookings, holds and the console move to the server.
-
-On the server the booking rules are not rewritten. The engine is the app's own `frontend/src/server` code, kept in memory and written through to Postgres. Postgres enforces the core rules as well: booking events cannot be updated or deleted, each stream's sequence must be contiguous and start with `BookingRequested`, and an exclusion constraint on `resource_holds` refuses two overlapping holds on one charger.
-
-### A booking request, end to end
-
-```mermaid
-sequenceDiagram
-  participant D as Driver app
-  participant S as Ampere server
-  participant P as PostgreSQL
-  participant H as Host app
-
-  D->>S: createBooking(quote) with driver token
-  S->>S: check range, connector, slot and policy
-  S->>P: INSERT BookingRequested (sequence 1)
-  P-->>S: committed, hold recorded
-  S-->>D: booking id, state "requested"
-  S-)H: SSE: BookingRequested
-  H->>S: accept(booking) with host token
-  S->>P: INSERT HostConfirmed (sequence 2)
-  S-)D: SSE: HostConfirmed
-  Note over D,P: After a refresh or a cleared browser, the app fetches the stream<br/>from Postgres and replays it to "host confirmed".
-```
-
-The jury console takes the same path: `TICKET` calls the booking service that `createBooking` uses, and `READY` appends the same `HostConfirmed` event as the host's button.
-
-## Key features (charging app)
-
-- **Strict discovery.** Only chargers within the car's estimated road range *and* matching its connector are shown. The same rules drive the map, the list and the console.
-- **Community booking.** Request a slot, host confirmation, demo checkout, arrival code, charging session and receipt.
-- **Event-sourced bookings.** Each booking is an append-only event stream and its state is derived by replay. Five lifecycle labels are shown: requested, host confirmed, on the way, charging and done.
-- **Live updates across devices.** Driver and host sessions stay in sync through server-sent events from the backend, or a simulated channel between tabs in the browser-only build.
-- **Jury Console.** A plain-text console that accepts `TICKET` and `READY` commands and writes through the same booking services as the app.
-- **Installable PWA** with a service worker.
-
-By default everything runs in the browser: the server, database and realtime channel are simulated in `frontend/src/server/` using `localStorage`, Web Locks and a `BroadcastChannel`. The [`backend/`](backend/README.md) server runs the same app, unchanged, against PostgreSQL, so bookings persist across devices, cleared browsers and restarts.
-
-## Getting started
-
-One command from the repository root runs the whole product. The landing page and the charging app are served by the same Vite process on the same port, and the landing page's "Try Ampere Demo" buttons open the app (`/app/?demo=driver`).
-
-```bash
-npm install        # from the repository root; frontend/ dependencies are installed automatically on first run
-npm run dev        # starts everything
-```
-
-| URL | What you get |
+| Layer | Stack and responsibility |
 | --- | --- |
-| http://localhost:5173/ | Landing page |
-| http://localhost:5173/app/ | Charging app (hot reload) |
+| Landing page | Vite, GSAP, and Lenis serve the landing page at `/` and link to the charging app at `/app/`. |
+| Web app | React 19, TypeScript, React Router, and Tailwind CSS 4. The installable PWA uses Workbox, Leaflet, and OpenStreetMap tiles. |
+| Browser demo | The booking engine runs in the browser. Local storage persists demo state, Web Locks coordinate writes, and BroadcastChannel shares updates between tabs. |
+| Server-backed demo | Node.js and Hono run the same booking engine behind HTTP APIs. Signed tab sessions identify the actor, and server-sent events sync bookings across devices. |
+| Persistence | PostgreSQL stores append-only booking events and rejects overlapping charger holds. Replaying those events restores bookings after a server restart. |
 
-To check the production build, which writes the landing page to `dist/` and the app to `dist/app/`:
-
-```bash
-npm run build
-npm run preview    # http://localhost:4173 (app at http://localhost:4173/app/)
+```mermaid
+flowchart LR
+  Landing["Landing page"] --> App["Charging PWA"]
+  App -->|Browser demo| Local["Local booking engine"]
+  App -->|Server-backed demo| API["Hono API and booking engine"]
+  API --> DB["PostgreSQL events and holds"]
+  API -->|Booking updates| App
 ```
 
-### Working on the charging app alone
+A booking request records an event and holds the slot. In server-backed mode, the API commits the event to PostgreSQL before replying and streams the update to eligible sessions. The server runs a single booking engine instance. The browser demo works without PostgreSQL or API credentials. Map tiles require network access.
 
-Only needed if you want the app on its own, served from `/`:
+## Folder overview
+
+| Path | Contents |
+| --- | --- |
+| `src/` and `public/` | Landing page, animations, and static assets |
+| `frontend/src/pages/` and `frontend/src/features/` | Portal screens and driver tools |
+| `frontend/src/domain/` and `frontend/src/server/` | Booking, availability, discovery, and simulation logic shared with the backend |
+| `backend/src/` and `backend/client/` | Hono API, realtime updates, persistence, and web client adapters |
+| `backend/db/` and `backend/data/` | PostgreSQL migrations and the public charger snapshot |
+| `assets/readme/` | README mockups |
+
+## Run locally
+
+Use Node.js **22.12+** and npm. The server-backed mode also requires PostgreSQL **15+**.
 
 ```bash
-cd frontend
-npm install
-npm run dev        # http://localhost:5173
-npm test           # domain and flow tests (vitest)
+git clone --branch main https://github.com/Soham-commits/Ampere.git
+cd Ampere
+npm ci
+npm ci --prefix frontend
 ```
 
-Stop the root dev server first, or pass `-- --port <n>`, because both use port 5173.
+### Browser demo
 
-### Running with the backend (PostgreSQL)
+```bash
+npm run dev
+```
 
-Needs Node 22+ and PostgreSQL 15+ (Homebrew `postgresql@17` works).
+Open the [landing page](http://localhost:5173/) or [start as Aarav](http://localhost:5173/app/?demo=driver). This mode requires no `.env`. To try driver and host together, open a second tab at `/app/signin` and select Rohan.
+
+### PostgreSQL-backed demo
+
+Create a local database and build the server-backed web app.
 
 ```bash
 createdb ampere
 cd backend
-npm install
-npm run build:web  # landing page + server-backed app into ../dist
-npm start          # http://localhost:8787, app at /app/
-npm run reset      # in a second terminal: restore the demo data
-npm test           # server tests (uses an ampere_test database)
+npm ci
+cp example.env .env
+npm run build:web
 ```
 
-The first start applies the migrations and seeds the demo. Later starts load everything from PostgreSQL. More detail is in the [server README](backend/README.md).
+Set the connection URI and a unique signing key in `backend/.env`. The URI below works for a local PostgreSQL instance that accepts your current user. Generate a key with `openssl rand -hex 32`.
 
-## Environment variables
+```dotenv
+DATABASE_URL=postgres://localhost:5432/ampere
+TOKEN_SECRET=replace_with_a_generated_signing_key
+PORT=8787
+```
 
-The browser-only build (`npm run dev` at the root) needs no environment variables.
+```bash
+node --env-file=.env --import tsx src/main.ts
+```
 
-The backend reads these. Copy [`backend/example.env`](backend/example.env) to `backend/.env` or export them in your shell. Never commit `.env` or a real key.
+The first start migrates and seeds the database. Open the [server-backed app](http://localhost:8787/app/) or the [jury console](http://localhost:8787/app/jury). Phones on the same Wi-Fi can use the network URL printed at startup.
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `DATABASE_URL` | `postgres://localhost:5432/ampere` | PostgreSQL connection |
-| `TOKEN_SECRET` | random per process | HMAC secret that signs session tokens. Set it for any shared deployment, or sessions end when the server restarts |
-| `PORT` | `8787` | Server port |
-| `CORS_ORIGIN` | localhost dev ports | Comma-separated origins allowed to call the API from another origin |
-| `VITE_AMPERE_API_URL` | empty (same origin) | Build time: API address when the app is hosted separately from the server |
-| `AMPERE_DEV_API` | `http://localhost:8787` | Where `npm run dev:web` proxies API calls |
-| `AMPERE_URL` | `http://localhost:8787` | Server that `npm run reset` talks to |
-| `OCM_API_KEY` | none | Only for `npm run import:chargers`. Free key from Open Charge Map |
-| `IMPORT_RADIUS_KM`, `OSRM_URL` | `20`, public OSRM | Optional settings for the charger import |
+| Optional setting | When to use it |
+| --- | --- |
+| `CORS_ORIGIN`, `VITE_AMPERE_API_URL` | Configure a separate web origin and API URL. Export the API URL when running `npm run build:web`. |
+| `OCM_API_KEY` | Refresh the bundled charger snapshot with `npm run import:chargers`. Export your key before running the importer. `IMPORT_RADIUS_KM` and `OSRM_URL` customize the import. |
 
-## Quick demo walkthrough
+In the jury console, try `TICKET|Tata Nexon EV|4|18.5362|73.8939|CCS2` as **Jury panel**. Follow the printed `READY` command to confirm the demo request.
 
-1. Sign in as **Aarav**, a driver at MIT-WPU with a Nexon EV at 4% battery. Home shows a 4.0 km road budget.
-2. Open **Stations**. Out-of-range or incompatible chargers are hidden, and only the hidden count is shown.
-3. Open **Café Durga · demo**, choose 90 min, 8 kWh and the Standard plan. The demo total is ₹112 + ₹20 = **₹132**. Request the booking and choose who brings the cable.
-4. In a second window (a private window or another device), sign in as **Rohan**, the café host, and confirm within 2 minutes. Cafés and offices belong to Rohan; residential societies belong to **Meera**.
-5. Pay (demo), start the journey, show the arrival code, then start and complete the session as the host.
-6. Sign in as *Jury panel* and open `/jury`:
-   ```
-   TICKET|Tata Nexon EV|4|18.5362|73.8939|CCS2
-   READY|<printed ref>|<ISO time>
-   ```
-   Reload the page, or clear the browser's site data, and the booking is restored from the persisted event stream.
-
-With the backend running, `cd backend && npm run reset` restores the demo data before a run.
-
-See [`frontend/README.md`](frontend/README.md) for the architecture table and known limits.
-
-## Honest limits
-
-- Community listings are synthetic. The backend adds real public chargers from Open Charge Map as non-reservable directory listings.
-- Map tiles come from the public OpenStreetMap tile server, which is suitable for demos only.
-- Without the backend, data lives in the browser's storage, so tabs of one browser share it but separate devices do not.
-- The 4% battery scenario demonstrates careful filtering. It is not a rescue guarantee.
+For reset, hot reload, and database test commands, see the [backend guide](backend/README.md). Run `npm test --prefix frontend` from the root for app tests.
 
 ## Team
 
-Team Stochastic:
+Team Stochastic · Harsh Gidwani, Soham Nigam, Samarth Bolkotgi, and Aryan More.
 
-- Harsh Gidwani
-- Soham Nigam
-- Samarth Bolkotgi
-- Aryan More
-
-## Documentation
-
-- [Ampere Product Solution Document](Ampere_Solution_Document.md): product, operating model, pricing assumptions and pilot plan.
-- [Charging app README](frontend/README.md): run instructions, demo script and architecture.
-- [Server README](backend/README.md): running the app against PostgreSQL, real charger data and the jury proof.
+[Product solution document](Ampere_Solution_Document.md) · [Charging app guide](frontend/README.md) · [Backend guide](backend/README.md)
