@@ -11,12 +11,12 @@
 </p>
 
 <p align="center">
-  <img src="assets/readme/ampere-home.webp" width="23%" alt="Ampere Home with a map preview, reachable chargers, and battery and range controls">
-  <img src="assets/readme/ampere-profile.webp" width="40%" alt="Ampere Profile showing vehicle details, connector types, battery, range budget, and charge target">
-  <img src="assets/readme/ampere-bookings.webp" width="23%" alt="Ampere Bookings showing an upcoming reservation and its time, planned energy, and price">
+  <img src="assets/phone_4.png" width="25%" alt="Ampere Driver Profile showing vehicle details, battery level, range budget, and charge target">
+  <img src="assets/readme/ampere-home.webp" width="28%" alt="Ampere Home with a map preview, reachable chargers, and battery and range controls">
+  <img src="assets/readme/ampere-bookings.webp" width="28%" alt="Ampere Bookings showing an upcoming reservation and its time, planned energy, and price">
 </p>
 
-<p align="center"><em>Mobile demo mockups · Home, Profile, and Bookings with sample data</em></p>
+<p align="center"><em>Mobile demo mockups · Driver Profile, Home, and Bookings with sample data</em></p>
 
 ## Overview
 
